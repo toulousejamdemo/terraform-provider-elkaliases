@@ -251,10 +251,10 @@ func TestAccElkaliasesIndex_invalid(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("ELKALIASES_URL"); v == "" {
+	if v := os.Getenv("ELASTICSEARCH_ENDPOINT"); v == "" {
 		t.Fatal("ELKALIASES_URL must be set for acceptance tests")
 	}
-	if v := os.Getenv("ELKALIASES_TOKEN"); v == "" {
+	if v := os.Getenv("ELASTICSEARCH_API_KEY"); v == "" {
 		t.Fatal("ELKALIASES_TOKEN must be set for acceptance tests")
 	}
 }

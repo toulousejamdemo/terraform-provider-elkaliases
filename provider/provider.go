@@ -14,14 +14,14 @@ func Provider() *schema.Provider {
 			"url": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ELKALIASES_URL", nil),
+				DefaultFunc: schema.EnvDefaultFunc("ELASTICSEARCH_ENDPOINT", nil),
 				Description: "The URL for the Elasticsearch instance.",
 			},
 			"token": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("ELKALIASES_TOKEN", nil),
+				DefaultFunc: schema.EnvDefaultFunc("ELASTICSEARCH_API_KEY", nil),
 				Description: "The token for API authentication.",
 			},
 		},

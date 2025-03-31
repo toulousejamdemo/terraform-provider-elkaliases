@@ -15,6 +15,9 @@ func resourceelkAliasesIndex() *schema.Resource {
 		Read:   resourceelkAliasesIndexRead,
 		Update: resourceelkAliasesIndexUpdate,
 		Delete: resourceelkAliasesIndexDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceelkAliasesIndexImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -41,7 +44,8 @@ func resourceelkAliasesIndex() *schema.Resource {
 							Required: true,
 						},
 						"alias": {
-							Type: schema.TypeList,
+							Type:     schema.TypeList,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -54,7 +58,6 @@ func resourceelkAliasesIndex() *schema.Resource {
 									},
 								},
 							},
-							Optional: true,
 						},
 					},
 				},
@@ -200,11 +203,11 @@ func resourceelkAliasesIndexRead(d *schema.ResourceData, m interface{}) error {
 		}
 
 		// Handle aliases
-		if aliases, ok := templateContent["aliases"].(map[string]interface{}); ok {
-			templateAliases := d.Get("template.0.alias").([]any)
-
+		if aliases, ok := templateContent["aliases"].(map[string]any); ok {
+			stateAliases := d.Get("template.0.alias").([]any)
 			var aliasList []any
-			for _, alias := range templateAliases {
+
+			for _, alias := range stateAliases {
 				alias := alias.(map[string]any)
 				if config, exist := aliases[alias["name"].(string)]; exist {
 					filterJson, err := json.Marshal(config.(map[string]any)["filter"])
@@ -217,6 +220,20 @@ func resourceelkAliasesIndexRead(d *schema.ResourceData, m interface{}) error {
 					})
 				}
 			}
+
+			for name, config := range aliases {
+				if !isInMap(stateAliases, "name", name) {
+					filterJson, err := json.Marshal(config.(map[string]any)["filter"])
+					if err != nil {
+						return fmt.Errorf("error marshaling filter: %s", err)
+					}
+					aliasList = append(aliasList, map[string]any{
+						"name":   name,
+						"filter": string(filterJson),
+					})
+				}
+			}
+
 			templateVar["alias"] = aliasList
 		}
 	}
@@ -229,10 +246,46 @@ func resourceelkAliasesIndexRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
+func isInMap(list []any, key string, value any) bool {
+	for _, element := range list {
+		element := element.(map[string]any)
+		if element[key] == value {
+			return true
+		}
+	}
+	return false
+}
+
 func resourceelkAliasesIndexUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceelkAliasesIndexCreate(d, m)
 }
 
 func resourceelkAliasesIndexDelete(d *schema.ResourceData, m interface{}) error {
+	es := m.(*elasticsearch.Client)
+
+	name := d.Id()
+
+	// Perform the delete operation
+	res, err := es.Indices.DeleteIndexTemplate(name)
+	if err != nil {
+		return fmt.Errorf("error deleting Elasticsearch index template: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return fmt.Errorf("error response from Elasticsearch when deleting index template: %s", res.String())
+	}
+
+	// If delete is successful, remove it from the state
+	d.SetId("")
+
 	return nil
+}
+
+func resourceelkAliasesIndexImport(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	err := resourceelkAliasesIndexRead(d, m)
+	if err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }

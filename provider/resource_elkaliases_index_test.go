@@ -34,8 +34,9 @@ func TestAccElkaliasesIndex_basic(t *testing.T) {
 	}`
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckElkaliasesIndexDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -81,8 +82,9 @@ func TestAccElkaliasesIndex_aliases(t *testing.T) {
 		}`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { testAccPreCheck(t) },
-			Providers: testAccProviders,
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckElkaliasesIndexDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -162,8 +164,9 @@ func TestAccElkaliasesIndex_aliases(t *testing.T) {
 		}`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { testAccPreCheck(t) },
-			Providers: testAccProviders,
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckElkaliasesIndexDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -238,8 +241,9 @@ func TestAccElkaliasesIndex_invalid(t *testing.T) {
 		}`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { testAccPreCheck(t) },
-			Providers: testAccProviders,
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckElkaliasesIndexDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -332,4 +336,24 @@ func testAccCheckElkaliasesIndexAliasExists(resourceName string, aliasName strin
 
 		return nil
 	}
+}
+
+func testAccCheckElkaliasesIndexDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*elasticsearch.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "elkaliases_index" {
+			continue
+		}
+
+		// Check if the index still exists
+		res, err := client.Indices.GetIndexTemplate(client.Indices.GetIndexTemplate.WithName(rs.Primary.ID))
+		if err == nil {
+			if res.StatusCode != 404 {
+				return fmt.Errorf("Index template %s still exists", rs.Primary.ID)
+			}
+		}
+	}
+
+	return nil
 }

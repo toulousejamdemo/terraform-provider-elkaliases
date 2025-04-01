@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 
@@ -24,6 +25,12 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("ELASTICSEARCH_API_KEY", nil),
 				Description: "The token for API authentication.",
 			},
+			"insecure": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Skip server certificate verification",
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"elkaliases_index": resourceelkAliasesIndex(),
@@ -35,11 +42,15 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	url := d.Get("url").(string)
 	token := d.Get("token").(string)
+	insecure := d.Get("insecure").(bool)
 
 	cfg := elasticsearch.Config{
 		Addresses: []string{url},
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: insecure,
+			},
 		},
 		Header: http.Header{
 			"Authorization": []string{fmt.Sprintf("ApiKey %s", token)},

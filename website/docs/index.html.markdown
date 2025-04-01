@@ -35,3 +35,4 @@ The following arguments are supported:
 
 * `url` - (Required) Url to the ElasticSsearch API
 * `token` - (Required) Authentication token to the ElasticSearch API
+* `insecure` - (Optional) Skip server certification verification

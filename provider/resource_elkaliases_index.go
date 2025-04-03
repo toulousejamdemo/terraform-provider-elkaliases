@@ -29,6 +29,25 @@ func resourceelkAliasesIndex() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
 			},
+			"data_stream": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"allow_custom_routing": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+						"hidden": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
 			"template": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
@@ -109,6 +128,15 @@ func resourceelkAliasesIndexCreate(d *schema.ResourceData, m interface{}) error 
 		"composed_of": composedOf,
 	}
 
+	// Convert data_stream
+	if value, ok := d.GetOk("data_stream"); ok {
+		content := value.([]any)[0].(map[string]any)
+		templateBody["data_stream"] = map[string]any{
+			"allow_custom_routing": content["allow_custom_routing"],
+			"hidden":               content["hidden"],
+		}
+	}
+
 	// Convert templateBody to JSON
 	body, err := json.Marshal(templateBody)
 	if err != nil {
@@ -180,6 +208,22 @@ func resourceelkAliasesIndexRead(d *schema.ResourceData, m interface{}) error {
 	// Handle composed_of
 	if composedOf, ok := templateDetails["composed_of"].([]interface{}); ok {
 		d.Set("composed_of", composedOf)
+	}
+
+	// Handle data_stream
+	if dataStream, ok := templateDetails["data_stream"].(map[string]any); ok {
+		dataSteamTemplate := make(map[string]any)
+		if routing, ok := dataStream["allow_custom_routing"]; ok {
+			dataSteamTemplate["allow_custom_routing"] = routing
+		}
+
+		if hidden, ok := dataStream["hidden"]; ok {
+			dataSteamTemplate["hidden"] = hidden
+		}
+
+		d.Set("data_stream", []any{dataSteamTemplate})
+	} else {
+		d.Set("data_stream", nil)
 	}
 
 	// Extract and handle template components

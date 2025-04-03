@@ -44,3 +44,6 @@ resource "elkaliases_index" "name" {
     * `name` - (Required) The alias name.
     * `filter` - (Required) Query used to limit documents the alias can access.
 * `composed_of` - (Required) An ordered list of component template names.
+* `data_stream` - (Optional) If this object is included, the template is used to create data streams and their backing indices. Supports an empty object.
+  * `allow_custom_routing` - (Optional) If true, the data stream supports custom routing. Defaults to false.
+  * `hidden` - (Optional) If true, the data stream is hidden. Defaults to false.

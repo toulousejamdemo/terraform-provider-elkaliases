@@ -12,6 +12,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+type dataStream struct {
+	AllowCustomRouting bool
+	Hidden             bool
+}
+
 func TestAccElkaliasesIndex_basic(t *testing.T) {
 	resourceName := "elkaliases_index.test"
 	config := `
@@ -191,6 +196,233 @@ func TestAccElkaliasesIndex_aliases(t *testing.T) {
 	})
 }
 
+func TestAccElkaliasesIndex_datastream(t *testing.T) {
+	t.Run("apply data_stream", func(t *testing.T) {
+		resourceName := "elkaliases_index.test_ds"
+		config := `
+		resource "elkaliases_index" "test_ds" {
+			name = "test_index_ds"
+			index_patterns = ["test_index_ds"]
+			template {
+				mappings = jsonencode({
+					"_source" = {
+						mode = "synthetic"
+					}
+				})
+				settings = jsonencode({
+					index = {
+						codec = "default"
+					}
+				})
+				alias {
+					name = "test_alias1"
+					filter = jsonencode({
+						"match" = {
+							"event.dataset" = "test1"
+						}
+					})
+				}
+			}
+			data_stream {
+				allow_custom_routing = true
+				hidden = true
+			}
+			composed_of = []
+		}`
+		resource.Test(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckElkaliasesIndexDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckElkaliasesIndexExists(resourceName),
+						testAccCheckElkaliasesIndexDataStreamExists(resourceName, dataStream{
+							AllowCustomRouting: true,
+							Hidden:             true,
+						}),
+						resource.TestCheckResourceAttr(resourceName, "data_stream.0.hidden", "true"),
+						resource.TestCheckResourceAttr(resourceName, "data_stream.0.allow_custom_routing", "true"),
+					),
+				},
+			},
+		})
+	})
+	t.Run("add data_stream", func(t *testing.T) {
+		resourceName := "elkaliases_index.test_ds"
+		configWithoutDataStream := `
+		resource "elkaliases_index" "test_ds" {
+			name = "test_index_ds"
+			index_patterns = ["test_index_ds"]
+			template {
+				mappings = jsonencode({
+					"_source" = {
+						mode = "synthetic"
+					}
+				})
+				settings = jsonencode({
+					index = {
+						codec = "default"
+					}
+				})
+				alias {
+					name = "test_alias1"
+					filter = jsonencode({
+						"match" = {
+							"event.dataset" = "test1"
+						}
+					})
+				}
+			}
+			composed_of = []
+		}`
+		config := `
+		resource "elkaliases_index" "test_ds" {
+			name = "test_index_ds"
+			index_patterns = ["test_index_ds"]
+			template {
+				mappings = jsonencode({
+					"_source" = {
+						mode = "synthetic"
+					}
+				})
+				settings = jsonencode({
+					index = {
+						codec = "default"
+					}
+				})
+				alias {
+					name = "test_alias1"
+					filter = jsonencode({
+						"match" = {
+							"event.dataset" = "test1"
+						}
+					})
+				}
+			}
+			data_stream {
+				allow_custom_routing = true
+				hidden = true
+			}
+			composed_of = []
+		}`
+		resource.Test(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckElkaliasesIndexDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithoutDataStream,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckElkaliasesIndexExists(resourceName),
+						testAccCheckElkaliasesIndexDataStreamNotExists(resourceName),
+						resource.TestCheckNoResourceAttr(resourceName, "data_stream.0"),
+					),
+				},
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckElkaliasesIndexExists(resourceName),
+						testAccCheckElkaliasesIndexDataStreamExists(resourceName, dataStream{
+							AllowCustomRouting: true,
+							Hidden:             true,
+						}),
+						resource.TestCheckResourceAttr(resourceName, "data_stream.0.hidden", "true"),
+						resource.TestCheckResourceAttr(resourceName, "data_stream.0.allow_custom_routing", "true"),
+					),
+				},
+			},
+		})
+	})
+	t.Run("remove data_stream", func(t *testing.T) {
+		resourceName := "elkaliases_index.test_ds"
+		configWithoutDataStream := `
+		resource "elkaliases_index" "test_ds" {
+			name = "test_index_ds"
+			index_patterns = ["test_index_ds"]
+			template {
+				mappings = jsonencode({
+					"_source" = {
+						mode = "synthetic"
+					}
+				})
+				settings = jsonencode({
+					index = {
+						codec = "default"
+					}
+				})
+				alias {
+					name = "test_alias1"
+					filter = jsonencode({
+						"match" = {
+							"event.dataset" = "test1"
+						}
+					})
+				}
+			}
+			composed_of = []
+		}`
+		config := `
+		resource "elkaliases_index" "test_ds" {
+			name = "test_index_ds"
+			index_patterns = ["test_index_ds"]
+			template {
+				mappings = jsonencode({
+					"_source" = {
+						mode = "synthetic"
+					}
+				})
+				settings = jsonencode({
+					index = {
+						codec = "default"
+					}
+				})
+				alias {
+					name = "test_alias1"
+					filter = jsonencode({
+						"match" = {
+							"event.dataset" = "test1"
+						}
+					})
+				}
+			}
+			data_stream {
+				allow_custom_routing = true
+				hidden = true
+			}
+			composed_of = []
+		}`
+		resource.Test(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckElkaliasesIndexDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckElkaliasesIndexExists(resourceName),
+						testAccCheckElkaliasesIndexDataStreamExists(resourceName, dataStream{
+							AllowCustomRouting: true,
+							Hidden:             true,
+						}),
+						resource.TestCheckResourceAttr(resourceName, "data_stream.0.hidden", "true"),
+						resource.TestCheckResourceAttr(resourceName, "data_stream.0.allow_custom_routing", "true"),
+					),
+				},
+				{
+					Config: configWithoutDataStream,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckElkaliasesIndexExists(resourceName),
+						testAccCheckElkaliasesIndexDataStreamNotExists(resourceName),
+						resource.TestCheckNoResourceAttr(resourceName, "data_stream.0"),
+					),
+				},
+			},
+		})
+	})
+}
+
 func TestAccElkaliasesIndex_invalid(t *testing.T) {
 	t.Run("multiple template", func(t *testing.T) {
 		config := `
@@ -263,6 +495,32 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
+func getIndexTemplate(id string) (map[string]any, error) {
+	client := testAccProvider.Meta().(*elasticsearch.Client)
+	res, err := client.Indices.GetIndexTemplate(client.Indices.GetIndexTemplate.WithName(id))
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 404 {
+		return nil, fmt.Errorf("Index template not found")
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding Elasticsearch response: %s", err)
+	}
+
+	templates, ok := response["index_templates"].([]interface{})
+	if !ok || len(templates) == 0 {
+		return nil, fmt.Errorf("No templates found in response")
+	}
+
+	template := templates[0].(map[string]interface{})
+	templateDetails := template["index_template"].(map[string]interface{})
+	return templateDetails, nil
+}
+
 func testAccCheckElkaliasesIndexExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -274,14 +532,9 @@ func testAccCheckElkaliasesIndexExists(resourceName string) resource.TestCheckFu
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*elasticsearch.Client)
-		res, err := client.Indices.GetIndexTemplate(client.Indices.GetIndexTemplate.WithName(rs.Primary.ID))
+		_, err := getIndexTemplate(rs.Primary.ID)
 		if err != nil {
 			return err
-		}
-
-		if res.StatusCode == 404 {
-			return fmt.Errorf("Index template not found")
 		}
 
 		return nil
@@ -299,30 +552,12 @@ func testAccCheckElkaliasesIndexAliasExists(resourceName string, aliasName strin
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*elasticsearch.Client)
-		res, err := client.Indices.GetIndexTemplate(client.Indices.GetIndexTemplate.WithName(rs.Primary.ID))
+		response, err := getIndexTemplate(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		if res.StatusCode == 404 {
-			return fmt.Errorf("Alias %s not found", aliasName)
-		}
-
-		var response map[string]interface{}
-		if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-			return fmt.Errorf("error decoding Elasticsearch response: %s", err)
-		}
-
-		templates, ok := response["index_templates"].([]interface{})
-		if !ok || len(templates) == 0 {
-			return fmt.Errorf("No templates found in response")
-		}
-
-		template := templates[0].(map[string]interface{})
-		templateDetails := template["index_template"].(map[string]interface{})
-
-		if templateContent, ok := templateDetails["template"].(map[string]interface{}); ok {
+		if templateContent, ok := response["template"].(map[string]interface{}); ok {
 			if aliases, ok := templateContent["aliases"].(map[string]interface{}); ok {
 				if _, exists := aliases[aliasName]; !exists {
 					return fmt.Errorf("Alias %s not found in index template", aliasName)
@@ -332,6 +567,56 @@ func testAccCheckElkaliasesIndexAliasExists(resourceName string, aliasName strin
 			}
 		} else {
 			return fmt.Errorf("No template content found in index template")
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckElkaliasesIndexDataStreamNotExists(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		response, err := getIndexTemplate(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		_, ok = response["data_stream"].(map[string]any)
+		if ok {
+			return fmt.Errorf("data_stream found in %s", resourceName)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckElkaliasesIndexDataStreamExists(resourceName string, ds dataStream) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		response, err := getIndexTemplate(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		dataStream, ok := response["data_stream"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("No data_stream found in %s", resourceName)
+		}
+
+		if ds.AllowCustomRouting != dataStream["allow_custom_routing"].(bool) {
+			return fmt.Errorf("`allow_custom_routing` doesn't have the proper value in %s", resourceName)
+		}
+
+		if ds.Hidden != dataStream["hidden"].(bool) {
+			return fmt.Errorf("`hidden` doesn't have the proper value in %s", resourceName)
 		}
 
 		return nil

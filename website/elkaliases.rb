@@ -13,8 +13,8 @@
         <li<%= sidebar_current("docs-elkaliases-resource") %>>
         <a href="#">Resources</a>
             <ul class="nav nav-visible">
-                <li<%= sidebar_current("docs-elkaliases-resource-elkaliases_index") %>>
-                    <a href="/docs/providers/elkaliases/r/elkaliases_index.html">elkaliases_index</a>
+                <li<%= sidebar_current("docs-elkaliases-resource-elkaliases_index_aliases") %>>
+                    <a href="/docs/providers/elkaliases/r/elkaliases_index_aliases.html">elkaliases_index_aliases</a>
                 </li>
             </ul>
         </li>

@@ -8,7 +8,10 @@ description: |-
 
 # alkaliases\_index
 
-The ``elkaliases_index_aliases`` resource creates aliases in an index
+The ``elkaliases_index_aliases`` resource creates aliases in an existing index.
+
+
+~> **Note**: The index needs to already exist at deployment time. This means that you cannot create an index template and apply aliases to it directly. You need to create an index or data stream first.
 
 ## Usage
 

@@ -14,14 +14,14 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"url": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ELASTICSEARCH_ENDPOINT", nil),
 				Description: "The URL for the Elasticsearch instance.",
 			},
 			"token": {
 				Type:        schema.TypeString,
-				Required:    true,
 				Sensitive:   true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ELASTICSEARCH_API_KEY", nil),
 				Description: "The token for API authentication.",
 			},
